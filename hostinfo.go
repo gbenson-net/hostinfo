@@ -5,12 +5,17 @@ import (
 	"context"
 	"regexp"
 	"strings"
+
+	"github.com/acobaugh/osrelease"
 )
 
 // A HostInfo describes a host and is returned by [Gather].
 type HostInfo struct {
 	// MachineID is the contents of "/etc/machine-id".
 	MachineID string `json:"machine_id,omitempty"`
+
+	// OS is the contents of "/etc/os-release".
+	OS map[string]string `json:"operating_system,omitempty"`
 }
 
 type gatherer struct {
@@ -24,6 +29,7 @@ func Gather(ctx context.Context, invoker Invoker) (*HostInfo, error) {
 	g := gatherer{invoker}
 	for _, op := range []func(context.Context, *HostInfo) error{
 		g.gatherMachineID,
+		g.gatherOSRelease,
 	} {
 		if err := op(ctx, result); err != nil {
 			return nil, err
@@ -67,5 +73,25 @@ func (g *gatherer) gatherMachineID(ctx context.Context, r *HostInfo) error {
 	}
 
 	r.MachineID = machineIDrx.FindString(strings.TrimSpace(s))
+	return nil
+}
+
+// gatherMachineID gathers the content of `/etc/os-release`.
+func (g *gatherer) gatherOSRelease(ctx context.Context, r *HostInfo) error {
+	s, err := g.invoke(ctx, "cat", "/etc/os-release")
+	if err != nil {
+		return err
+	}
+
+	m, err := osrelease.ReadString(s)
+	if err != nil || len(m) == 0 {
+		return err
+	}
+
+	r.OS = make(map[string]string)
+	for k, v := range m {
+		r.OS[strings.ToLower(k)] = v
+	}
+
 	return nil
 }
