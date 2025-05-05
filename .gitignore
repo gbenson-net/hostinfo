@@ -26,3 +26,4 @@ go.work.sum
 
 # Reports
 coverage.html
+localhost.json
