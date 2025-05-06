@@ -1,0 +1,6 @@
+/dev/mapper/nvme0n1p3_crypt: UUID="edx72e-gU2l-3o33-YpNK-4MJY-eqmG-jxjMNm" TYPE="LVM2_member"
+/dev/mapper/vgubuntu-root: UUID="74af80a9-cf5b-0101-c4c0-8bc5a18ac15f" BLOCK_SIZE="4096" TYPE="ext4"
+/dev/nvme0n1p3: UUID="242e637a-461b-d087-c66e-384d35525691" TYPE="crypto_LUKS" PARTUUID="78a57141-099b-92dd-4246-493b73a2e43e"
+/dev/nvme0n1p1: UUID="8B92-BD41" BLOCK_SIZE="512" TYPE="vfat" PARTLABEL="EFI System Partition" PARTUUID="950e1770-24f5-3f3d-c807-3b74207de629"
+/dev/nvme0n1p2: UUID="fcce5f17-ffb6-324b-79f8-d954f74fec58" BLOCK_SIZE="4096" TYPE="ext4" PARTUUID="9db0e900-9061-75e5-d321-07bc832127f3"
+/dev/mapper/vgubuntu-swap_1: UUID="aa9a4033-cdd4-4ee4-9e8a-ac73d2f221b3" TYPE="swap"

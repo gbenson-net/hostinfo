@@ -3,14 +3,24 @@ package hostinfo
 
 import (
 	"context"
-	"regexp"
+	"errors"
+	"reflect"
+	"runtime"
 	"strings"
 
-	"github.com/acobaugh/osrelease"
+	"gbenson.net/go/invoker"
+	"gbenson.net/go/logger"
 )
 
-// A HostInfo describes a host and is returned by [Gather].
+// A HostInfo describes a host and is returned by [Gather].  The
+// result is intended for serialization with minimal loss and is
+// stored in mappings rather than objects by design.  Consumers can
+// then either embed/alias the type and add accessor methods, or
+// define their own types with the required fields and types.
 type HostInfo struct {
+	// Disks is constructed from the output of `/sbin/blkid`.
+	Disks map[string]map[string]string `json:"block_devices,omitempty"`
+
 	// MachineID is the contents of "/etc/machine-id".
 	MachineID string `json:"machine_id,omitempty"`
 
@@ -18,80 +28,79 @@ type HostInfo struct {
 	OS map[string]string `json:"operating_system,omitempty"`
 }
 
-type gatherer struct {
-	invoker Invoker
-}
-
 // Gather returns a [HostInfo] describing a host.
-func Gather(ctx context.Context, invoker Invoker) (*HostInfo, error) {
+func Gather(ctx context.Context, invoker invoker.Invoker) (*HostInfo, error) {
 	result := &HostInfo{}
+	success := false
 
-	g := gatherer{invoker}
-	for _, op := range []func(context.Context, *HostInfo) error{
-		g.gatherMachineID,
-		g.gatherOSRelease,
+	gi := gatherInvoker{ctx, invoker}
+	for _, op := range []gatherer{
+		gatherDiskAttrs,
+		gatherMachineID,
+		gatherOSRelease,
 	} {
-		if err := op(ctx, result); err != nil {
-			return nil, err
+		if err := op(&gi, result); err == nil {
+			success = true
+		} else {
+			logger.Ctx(ctx).Warn().
+				Str("item", op.String()).
+				AnErr("reason", err).
+				Msg("Gather failed")
 		}
+	}
+
+	if !success {
+		return nil, errors.New("all gatherers failed")
 	}
 
 	return result, nil
 }
 
-// invoke wraps Invoker.Invoke.
-func (g *gatherer) invoke(
-	ctx context.Context,
-	name string,
-	arg ...string,
-) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
+// A gatherer is a function that populates part of a HostInfo.
+type gatherer func(*gatherInvoker, *HostInfo) error
+
+// String returns the name of a gatherer, for error messages etc.
+func (op gatherer) String() string {
+	name := runtime.FuncForPC(reflect.ValueOf(op).Pointer()).Name()
+	dot := strings.LastIndex(name, ".")
+	if dot > 0 {
+		name = name[dot+1:]
 	}
-	out, err := g.invoker.Invoke(name, arg...)
+	name, _ = strings.CutPrefix(name, "gather")
+	return name
+}
+
+// gatherInvoker modifies Invoker.
+type gatherInvoker struct {
+	context context.Context
+	invoker invoker.Invoker
+}
+
+// Logger returns the Logger associated with the gatherInvoker's
+// context, or an appropriate (non-nil) default if the invoker's
+// context has no logger associated.
+func (gi *gatherInvoker) Logger() *logger.Logger {
+	return logger.Ctx(gi.context)
+}
+
+// Invoke wraps Invoker.Invoke.
+func (gi *gatherInvoker) Invoke(name string, arg ...string) (string, error) {
+	ctx := gi.context
+	invoker := gi.invoker
+
+	gi.Logger().Debug().
+		Strs("command", append([]string{name}, arg...)).
+		Msg("Invoking")
+
+	out, err := invoker.Invoke(ctx, name, arg...)
 	if err != nil {
 		return "", err
 	}
+
 	return string(out), nil
 }
 
-var machineIDrx = regexp.MustCompile(`^[0-9a-f]{32}$`)
-
-// gatherMachineID gathers the content of `/etc/machine-id`.
-//
-// "The `/etc/machine-id` file contains the unique machine ID of the
-// local system that is set during installation or boot. The machine
-// ID is a single newline-terminated, hexadecimal, 32-character,
-// lowercase ID. When decoded from hexadecimal, this corresponds to
-// a 16-byte/128-bit value. This ID may not be all zeros." [1]
-//
-// [1]: https://www.man7.org/linux/man-pages/man5/machine-id.5.html
-func (g *gatherer) gatherMachineID(ctx context.Context, r *HostInfo) error {
-	s, err := g.invoke(ctx, "cat", "/etc/machine-id")
-	if err != nil {
-		return err
-	}
-
-	r.MachineID = machineIDrx.FindString(strings.TrimSpace(s))
-	return nil
-}
-
-// gatherMachineID gathers the content of `/etc/os-release`.
-func (g *gatherer) gatherOSRelease(ctx context.Context, r *HostInfo) error {
-	s, err := g.invoke(ctx, "cat", "/etc/os-release")
-	if err != nil {
-		return err
-	}
-
-	m, err := osrelease.ReadString(s)
-	if err != nil || len(m) == 0 {
-		return err
-	}
-
-	r.OS = make(map[string]string)
-	for k, v := range m {
-		r.OS[strings.ToLower(k)] = v
-	}
-
-	return nil
+// ReadFile works like [os.ReadFile].
+func (gi *gatherInvoker) ReadFile(name string) (string, error) {
+	return gi.Invoke("cat", name)
 }
