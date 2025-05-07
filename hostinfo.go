@@ -21,6 +21,10 @@ type HostInfo struct {
 	// Disks is constructed from the output of `/sbin/blkid`.
 	Disks map[string]map[string]string `json:"block_devices,omitempty"`
 
+	// CPUs and CPUInfo are the contents of "/proc/cpuinfo".
+	CPUs    []map[string]any `json:"cpus,omitempty"`
+	CPUInfo map[string]any   `json:"cpu_info,omitempty"`
+
 	// MachineID is the contents of "/etc/machine-id".
 	MachineID string `json:"machine_id,omitempty"`
 
@@ -36,6 +40,7 @@ func Gather(ctx context.Context, invoker invoker.Invoker) (*HostInfo, error) {
 	gi := gatherInvoker{ctx, invoker}
 	for _, op := range []gatherer{
 		gatherDiskAttrs,
+		gatherCPUInfo,
 		gatherMachineID,
 		gatherOSRelease,
 	} {

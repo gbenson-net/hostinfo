@@ -50,6 +50,14 @@ func assertMock(t *testing.T, g gatherer, mi *invoker.MockInvoker) HostInfo {
 	return result
 }
 
+// assertNotHasKey fails a test if the supplied mapping contains
+// the given key.
+func assertNotHasKey[K comparable, V any](t *testing.T, mapping map[K]V, key K) {
+	t.Helper()
+	_, found := mapping[key]
+	assert.Check(t, !found, key)
+}
+
 // TestGather flexes the expected use case.
 func TestGather(t *testing.T) {
 	ctx := testctx(t)

@@ -13,8 +13,7 @@ func TestGatherOSRelease(t *testing.T) {
 	switch r.OS["id"] {
 	case "debian":
 		assert.Check(t, r.OS["name"] == "Debian GNU/Linux")
-		_, found := r.OS["id_like"]
-		assert.Check(t, !found)
+		assertNotHasKey(t, r.OS, "id_like")
 	case "ubuntu":
 		assert.Check(t, r.OS["name"] == "Ubuntu")
 		assert.Check(t, r.OS["id_like"] == "debian")
