@@ -28,6 +28,9 @@ type HostInfo struct {
 	// MachineID is the contents of "/etc/machine-id".
 	MachineID string `json:"machine_id,omitempty"`
 
+	// Memory is the contents of "/proc/meminfo".
+	Memory map[string]any `json:"memory,omitempty"`
+
 	// OS is the contents of "/etc/os-release".
 	OS map[string]string `json:"operating_system,omitempty"`
 }
@@ -42,6 +45,7 @@ func Gather(ctx context.Context, invoker invoker.Invoker) (*HostInfo, error) {
 		gatherDiskAttrs,
 		gatherCPUInfo,
 		gatherMachineID,
+		gatherMemInfo,
 		gatherOSRelease,
 	} {
 		if err := op(&gi, result); err == nil {

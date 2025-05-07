@@ -56,15 +56,20 @@ func TestGatherCPUInfo_X86(t *testing.T) {
 	// integer, value converted from hex
 	assert.Equal(t, cpu["microcode"], 0x436)
 
-	// string, key was converted to snake case
+	// dimensioned integer, key was converted to snake case
 	assertNotHasKey(t, cpu, "cache size")
-	assert.Equal(t, cpu["cache_size"], "12288 KB")
+	assertNotHasKey(t, cpu, "cache_size")
+	assertNotHasKey(t, cpu, "cache_size_KB")
+	assert.Equal(t, cpu["cache_size_kb"], 12_288)
 
-	// string, key was converted to snake case
+	// floaty integer, key was converted to snake case
 	assertNotHasKey(t, cpu, "cpu MHz") // input
 	assertNotHasKey(t, cpu, "cpu_MHz")
 	assertNotHasKey(t, cpu, "cpu_m_hz") // strcase fail
-	assert.Equal(t, cpu["cpu_mhz"], "400.000")
+	assert.Equal(t, cpu["cpu_mhz"], 400)
+
+	// string (non-integer float)
+	assert.Equal(t, cpu["bogomips"], "5222.40")
 
 	// boolean, key was already snake case
 	assert.Check(t, cpu["fpuException"])
