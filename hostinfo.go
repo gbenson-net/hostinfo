@@ -18,8 +18,8 @@ import (
 // then either embed/alias the type and add accessor methods, or
 // define their own types with the required fields and types.
 type HostInfo struct {
-	// Disks is constructed from the output of `/sbin/blkid`.
-	Disks map[string]map[string]string `json:"block_devices,omitempty"`
+	// Disks is constructed from the output of `blkid` and `cryptsetup`.
+	Disks map[string]map[string]any `json:"block_devices,omitempty"`
 
 	// CPUs and CPUInfo are the contents of "/proc/cpuinfo".
 	CPUs    []map[string]any `json:"cpus,omitempty"`
@@ -107,6 +107,28 @@ func (gi *gatherInvoker) Invoke(name string, arg ...string) (string, error) {
 	}
 
 	return string(out), nil
+}
+
+// InvokeSudo invokes the given command with sudo.
+func (gi *gatherInvoker) InvokeSudo(name string, arg ...string) (string, error) {
+	arg = append([]string{name}, arg...)
+	return gi.Invoke("sudo", arg...)
+}
+
+// InvokeRetrySudo retrys an invocation with sudo on error.
+func (gi *gatherInvoker) InvokeRetrySudo(name string, arg ...string) (string, error) {
+	result, err1 := gi.Invoke(name, arg...)
+	if err1 == nil {
+		return result, nil
+	}
+	result, err2 := gi.InvokeSudo(name, arg...)
+	if err2 == nil {
+		return result, nil
+	}
+	if err1.Error() == err2.Error() {
+		return "", err1
+	}
+	return "", errors.Join(err1, err2)
 }
 
 // ReadFile works like [os.ReadFile].
