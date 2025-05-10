@@ -1,5 +1,5 @@
-gbenson.net/go/invoker v1.0.0 h1:8nzK4skpWzqUppyaF6fkzaRsbR8jl/Ra4BXKsvk9LYw=
-gbenson.net/go/invoker v1.0.0/go.mod h1:Wuyx0zTkYfnwFkSPzI8kbsAAAX75AWcvOmtTTt0di+c=
+gbenson.net/go/invoker v1.1.0 h1:RzRC4enBPXAGDPRJ7N8seQxNzyDhHUVYTY3eZ3oKl3g=
+gbenson.net/go/invoker v1.1.0/go.mod h1:Wuyx0zTkYfnwFkSPzI8kbsAAAX75AWcvOmtTTt0di+c=
 gbenson.net/go/logger v1.2.0 h1:rjWXEWTfFa2UJ50TyyNyw79RKlQ7aOYe9RBduqevCS0=
 gbenson.net/go/logger v1.2.0/go.mod h1:141KF4p4EB303Gr6DVtSCgTnStoDKhys+3bvNSERmDE=
 gbenson.net/go/strcase v1.0.1 h1:Of2Al1URoUXNQiZusIW3ZfgZM7vRivrukTJamq1BxQ4=

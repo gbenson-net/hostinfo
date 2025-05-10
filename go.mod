@@ -3,7 +3,7 @@ module gbenson.net/go/hostinfo
 go 1.24.2
 
 require (
-	gbenson.net/go/invoker v1.0.0
+	gbenson.net/go/invoker v1.1.0
 	gbenson.net/go/logger v1.2.0
 	gbenson.net/go/strcase v1.0.1
 	github.com/acobaugh/osrelease v0.1.0

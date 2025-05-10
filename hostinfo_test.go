@@ -16,10 +16,10 @@ func testctx(t *testing.T) context.Context {
 	return logger.TestContext(t)
 }
 
-// exec runs the specified gatherer with an [invoker.ExecInvoker].
+// exec runs the specified gatherer with [invoker.Exec].
 func exec(t *testing.T, g gatherer) (HostInfo, error) {
 	t.Helper()
-	return invoke(t, &invoker.ExecInvoker{}, g)
+	return invoke(t, invoker.Exec, g)
 }
 
 // invoke runs the specified gatherer with the specified [invoker.Invoker].
@@ -29,7 +29,7 @@ func invoke(t *testing.T, i invoker.Invoker, g gatherer) (result HostInfo, err e
 	return
 }
 
-// assertExec runs the specified gatherer with an [ExecInvoker],
+// assertExec runs the specified gatherer with [invoker.Exec],
 // marking the test as having failed and stopping its execution
 // if the gatherer returns an error.
 func assertExec(t *testing.T, g gatherer) HostInfo {
@@ -61,7 +61,7 @@ func assertNotHasKey[K comparable, V any](t *testing.T, mapping map[K]V, key K) 
 // TestGather flexes the expected use case.
 func TestGather(t *testing.T) {
 	ctx := testctx(t)
-	hostinfo, err := Gather(ctx, &invoker.ExecInvoker{})
+	hostinfo, err := Gather(ctx, invoker.Exec)
 	assert.NilError(t, err)
 
 	data, err := json.Marshal(hostinfo)
