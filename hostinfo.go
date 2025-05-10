@@ -31,6 +31,9 @@ type HostInfo struct {
 	// Memory is the contents of "/proc/meminfo".
 	Memory map[string]any `json:"memory,omitempty"`
 
+	// Interfaces is constructed from the output of `ip address`.
+	Interfaces map[string]map[string]any `json:"network_interfaces,omitempty"`
+
 	// OS is the contents of "/etc/os-release".
 	OS map[string]string `json:"operating_system,omitempty"`
 }
@@ -46,6 +49,7 @@ func Gather(ctx context.Context, invoker invoker.Invoker) (*HostInfo, error) {
 		gatherCPUInfo,
 		gatherMachineID,
 		gatherMemInfo,
+		gatherInterfaces,
 		gatherOSRelease,
 	} {
 		if err := op(&gi, result); err == nil {
