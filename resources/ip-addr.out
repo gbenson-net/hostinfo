@@ -1,0 +1,10 @@
+1: lo: <LOOPBACK> mtu 65536 qdisc noop qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast qlen 1000
+    link/ether 14:d4:24:74:da:9d brd ff:ff:ff:ff:ff:ff
+    inet 10.11.12.64/24 brd 10.11.12.255 scope global dynamic noprefixroute eth0
+       valid_lft 78624sec preferred_lft 67824sec
+    inet6 fe80::eaff:1eff:f474:da9d/64 scope link 
+       valid_lft forever preferred_lft forever
+3: eth1: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast qlen 1000
+    link/ether 14:d4:24:74:da:9e brd ff:ff:ff:ff:ff:ff
