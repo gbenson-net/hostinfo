@@ -3,8 +3,12 @@ package hostinfo
 import (
 	"bufio"
 	"bytes"
+	"iter"
+	"maps"
 	"slices"
 	"strings"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // gatherCPUInfo gathers the content of `/proc/cpuinfo`.
@@ -49,6 +53,7 @@ func gatherCPUInfo(gi *gatherInvoker, r *HostInfo) error {
 		r.CPUs = append(r.CPUs, p)
 	}
 
+	compactCPUInfo(&r.CPUInfo, r.CPUs)
 	return nil
 }
 
@@ -99,4 +104,57 @@ func parseFlags(s string) []string {
 	result := strings.Fields(s)
 	slices.Sort(result)
 	return result
+}
+
+// compactCPUInfo moves values common to all CPUs into a global template.
+func compactCPUInfo(template *map[string]any, cpus []map[string]any) {
+	result := *template
+
+	for k, v := range maps.Collect(sharedKVPs(cpus)) {
+		tv, found := result[k]
+		if found {
+			if !cmp.Equal(tv, v) {
+				continue // template has a different value
+			}
+		} else {
+			if result == nil {
+				result = make(map[string]any)
+			}
+			result[k] = v
+		}
+
+		for _, cpu := range cpus {
+			delete(cpu, k)
+		}
+	}
+
+	*template = result
+}
+
+// sharedKVPs returns an iterator over all key-value pairs which are
+// identical across all mm.
+func sharedKVPs[Map ~map[K]V, K comparable, V any](mm []Map) iter.Seq2[K, V] {
+	if len(mm) < 2 {
+		return func(_ func(K, V) bool) {}
+	}
+	ref := mm[0]
+	mm = mm[1:]
+
+	return func(yield func(K, V) bool) {
+	keys:
+		for k, rv := range ref {
+			for _, m := range mm {
+				mv, found := m[k]
+				if !found {
+					continue keys
+				}
+				if !cmp.Equal(mv, rv) {
+					continue keys
+				}
+			}
+			if !yield(k, rv) {
+				return
+			}
+		}
+	}
 }

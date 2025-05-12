@@ -2,6 +2,10 @@ package hostinfo
 
 import (
 	_ "embed"
+	"encoding/json"
+	"maps"
+	"slices"
+	"strings"
 	"testing"
 
 	"gbenson.net/go/invoker"
@@ -22,18 +26,28 @@ func TestGatherCPUInfo_ARM(t *testing.T) {
 
 	r := assertMock(t, gatherCPUInfo, mock)
 	assert.Equal(t, len(r.CPUs), 4)
-	assert.Equal(t, len(r.CPUInfo), 4)
+	assert.Equal(t, len(r.CPUInfo), 11)
 
 	assertNotHasKey(t, r.CPUInfo, "Serial")
 	assert.Equal(t, r.CPUInfo["serial"], "100000006b11cc9f")
 
-	assert.DeepEqual(t, r.CPUs[2]["features"], []string{
+	assert.DeepEqual(t, r.CPUInfo["features"], []string{
 		"asimd",
 		"cpuid",
 		"crc32",
 		"evtstrm",
 		"fp",
 	})
+
+	// Ensure JSON marshaling preserves empty CPUs.
+	b, err := json.Marshal(r)
+	assert.NilError(t, err)
+	assert.Check(t, strings.Contains(string(b), "\"cpus\":[{},{},{},{}]"))
+
+	// Ensure JSON unmarshaling preserves empty CPUs.
+	var u HostInfo
+	assert.NilError(t, json.Unmarshal(b, &u))
+	assert.Equal(t, len(u.CPUs), 4)
 }
 
 //go:embed resources/cpuinfo.x86
@@ -45,32 +59,45 @@ func TestGatherCPUInfo_X86(t *testing.T) {
 
 	r := assertMock(t, gatherCPUInfo, mock)
 	assert.Equal(t, len(r.CPUs), 12)
-	assert.Equal(t, len(r.CPUInfo), 0)
+	assert.Equal(t, len(r.CPUInfo), 22)
 
-	cpu := r.CPUs[7]
-	assertNotHasKey(t, r.CPUInfo, "processor")
+	info := r.CPUInfo
 
 	// integer
-	assert.Equal(t, cpu["model"], 154)
+	assert.Equal(t, info["model"], 154)
 
 	// integer, value converted from hex
-	assert.Equal(t, cpu["microcode"], 0x436)
+	assert.Equal(t, info["microcode"], 0x436)
 
 	// dimensioned integer, key was converted to snake case
-	assertNotHasKey(t, cpu, "cache size")
-	assertNotHasKey(t, cpu, "cache_size")
-	assertNotHasKey(t, cpu, "cache_size_KB")
-	assert.Equal(t, cpu["cache_size_kb"], 12_288)
-
-	// floaty integer, key was converted to snake case
-	assertNotHasKey(t, cpu, "cpu MHz") // input
-	assertNotHasKey(t, cpu, "cpu_MHz")
-	assertNotHasKey(t, cpu, "cpu_m_hz") // strcase fail
-	assert.Equal(t, cpu["cpu_mhz"], 400)
+	assertNotHasKey(t, info, "cache size")
+	assertNotHasKey(t, info, "cache_size")
+	assertNotHasKey(t, info, "cache_size_KB")
+	assert.Equal(t, info["cache_size_kb"], 12_288)
 
 	// string (non-integer float)
-	assert.Equal(t, cpu["bogomips"], "5222.40")
+	assert.Equal(t, info["bogomips"], "5222.40")
 
 	// boolean, key was already snake case
-	assert.Check(t, cpu["fpuException"])
+	assertNotHasKey(t, info, "fpuException")
+	assert.Equal(t, info["fpu_exception"], true)
+
+	wantCPUKeys := []string{
+		"apicid",
+		"core_id",
+		"cpu_mhz",
+		"initial_apicid",
+	}
+
+	cpu := r.CPUs[7]
+	assert.DeepEqual(t, slices.Sorted(maps.Keys(cpu)), wantCPUKeys)
+	intMHz, ok := cpu["cpu_mhz"].(int)
+	assert.Check(t, ok)
+	assert.Equal(t, intMHz, 400) // floaty integer converted to integer
+
+	cpu = r.CPUs[6]
+	assert.DeepEqual(t, slices.Sorted(maps.Keys(cpu)), wantCPUKeys)
+	floatMHz, ok := cpu["cpu_mhz"].(string)
+	assert.Check(t, ok)
+	assert.Equal(t, floatMHz, "3443.199") // non-integral float unconverted
 }
